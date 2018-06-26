@@ -56,16 +56,24 @@ class Auth
                     $session_key = $json_message['session_key'];
                     $errCode = 0;
                     $user_info = false;
-                    //兼容旧的解密算法
-                    if($iv == "old"){
-                        $decrypt_data = new decrypt_data();
-                        $user_info = $decrypt_data->aes128cbc_Decrypt($encrypt_data, $session_key);
+
+                    //如果没有提供encrypt_data，手动设置user_info
+                    if($encrypt_data == "" || $encrypt_data == "empty") {
+                        $user_info = '{"openId":"'.$openid.'"}';
                         log_message("INFO","userinfo:".$user_info);
                         $user_info = base64_encode($user_info);
-                    }else{
-                        $pc = new WXBizDataCrypt($appid, $session_key);
-                        $errCode = $pc->decryptData($encrypt_data, $iv, $user_info);
-                        $user_info = base64_encode($user_info);
+                    } else {
+                        //兼容旧的解密算法
+                        if($iv == "old"){
+                            $decrypt_data = new decrypt_data();
+                            $user_info = $decrypt_data->aes128cbc_Decrypt($encrypt_data, $session_key);
+                            log_message("INFO","userinfo:".$user_info);
+                            $user_info = base64_encode($user_info);
+                        }else{
+                            $pc = new WXBizDataCrypt($appid, $session_key);
+                            $errCode = $pc->decryptData($encrypt_data, $iv, $user_info);
+                            $user_info = base64_encode($user_info);
+                        }
                     }
                     if ($user_info === false || $errCode !== 0) {
                         $ret['returnCode'] = return_code::MA_DECRYPT_ERR;
